@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { bibleCategories, testamentInfo, type BibleCategory, type BibleBook } from '@/lib/bible-data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -308,6 +308,13 @@ function TimelineView() {
 export default function Home() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [showScrollBtns, setShowScrollBtns] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollBtns(window.scrollY > 200);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const filteredCategories = useMemo(() => {
     let cats = bibleCategories;
@@ -453,6 +460,32 @@ export default function Home() {
           <p className="mt-1 text-xs">각 서별 핵심 메시지를 한눈에 이해할 수 있도록 정리했습니다.</p>
         </div>
       </footer>
+
+      {/* ── 플로팅 스크롤 단축 버튼 ── */}
+      {showScrollBtns && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="w-11 h-11 rounded-full bg-slate-700/50 hover:bg-slate-700/80 text-white/80 hover:text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 border border-white/10"
+            aria-label="페이지 최상단으로 이동"
+            title="최상단"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 15l-6-6-6 6" />
+            </svg>
+          </button>
+          <button
+            onClick={() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' })}
+            className="w-11 h-11 rounded-full bg-slate-700/50 hover:bg-slate-700/80 text-white/80 hover:text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:translate-y-0.5 border border-white/10"
+            aria-label="페이지 최하단으로 이동"
+            title="최하단"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
