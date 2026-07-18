@@ -52,7 +52,7 @@ function HeroSection() {
     <div className="relative w-full overflow-hidden rounded-2xl mb-8" style={{ minHeight: '340px' }}>
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/bible-images/hero.jpg')" }}
+        style={{ backgroundImage: `url('${process.env.NEXT_PUBLIC_BASE_PATH || ''}/bible-images/hero.jpg')` }}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
       <div className="relative z-10 flex flex-col items-start justify-center px-8 md:px-16 py-12 min-h-[340px]">
@@ -93,7 +93,7 @@ function CategoryHero({ category }: { category: BibleCategory }) {
     <div className="relative w-full overflow-hidden rounded-xl mb-6" style={{ minHeight: '200px' }}>
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${category.image}')` }}
+        style={{ backgroundImage: `url('${process.env.NEXT_PUBLIC_BASE_PATH || ''}${category.image}')` }}
       />
       <div className={`absolute inset-0 bg-gradient-to-r ${category.gradient} opacity-75`} />
       <div className="absolute inset-0 bg-black/30" />

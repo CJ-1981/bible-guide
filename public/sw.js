@@ -1,10 +1,14 @@
 const CACHE_NAME = 'bible-guide-v1';
+
+// 서비스 워커가 등록된 scope을 기준으로 basePath를 자동 감지
+const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, '');
+
 const PRECACHE_URLS = [
-  '/',
-  '/characters',
-  '/map',
-  '/prophecy',
-  '/harmony',
+  BASE_PATH + '/',
+  BASE_PATH + '/characters/',
+  BASE_PATH + '/map/',
+  BASE_PATH + '/prophecy/',
+  BASE_PATH + '/harmony/',
 ];
 
 self.addEventListener('install', (event) => {

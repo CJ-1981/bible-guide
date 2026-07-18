@@ -4,6 +4,9 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 
+// GitHub Pages basePath — 로컬 개발 시에는 빈 값, 배포 시 리포지토리 경로
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -28,17 +31,17 @@ export const metadata: Metadata = {
   title: "성경 요약 가이드 — Bible Summary Guide",
   description: "구약 39권, 신약 27권 — 성경 66권의 핵심 메시지를 한눈에 이해하세요. 인물 관계도, 성경 지도, 예언-성취 비교, 사화조화 제공.",
   keywords: ["성경", "Bible", "구약", "신약", "요약", "인물관계도", "성경지도", "예언성취", "사화조화"],
-  manifest: "/manifest.json",
+  manifest: `${basePath}/manifest.json`,
   icons: {
     icon: [
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon.ico", sizes: "32x32" },
+      { url: `${basePath}/favicon-16.png`, sizes: "16x16", type: "image/png" },
+      { url: `${basePath}/favicon-32.png`, sizes: "32x32", type: "image/png" },
+      { url: `${basePath}/favicon.ico`, sizes: "32x32" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-      { url: "/icon-152.png", sizes: "152x152", type: "image/png" },
-      { url: "/icon-120.png", sizes: "120x120", type: "image/png" },
+      { url: `${basePath}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
+      { url: `${basePath}/icon-152.png`, sizes: "152x152", type: "image/png" },
+      { url: `${basePath}/icon-120.png`, sizes: "120x120", type: "image/png" },
     ],
   },
   appleWebApp: {
@@ -61,7 +64,9 @@ function ServiceWorkerRegistration() {
         __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js').catch(function() {});
+              var basePath = '${basePath}';
+              var swPath = basePath + '/sw.js';
+              navigator.serviceWorker.register(swPath, { scope: basePath + '/' }).catch(function() {});
             });
           }
         `,
