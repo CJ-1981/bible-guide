@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import { bibleCategories, testamentInfo, type BibleCategory, type BibleBook } from '@/lib/bible-data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,27 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTheme } from '@/components/theme-provider';
+
+function DarkModeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-8 w-8 p-0"
+      onClick={toggleTheme}
+      aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+      title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
+    >
+      {theme === 'dark' ? (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      )}
+    </Button>
+  );
+}
 
 function TestamentBadge({ testament }: { testament: 'old' | 'new' }) {
   if (testament === 'old') {
@@ -376,6 +398,20 @@ export default function Home() {
               {totalBooks}권 검색됨
             </Badge>
           )}
+          {/* 네비게이션 & 다크모드 */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <Link href="/characters">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8">
+                <span>👥</span><span className="hidden md:inline">인물도</span>
+              </Button>
+            </Link>
+            <Link href="/map">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8">
+                <span>🗺️</span><span className="hidden md:inline">지도</span>
+              </Button>
+            </Link>
+            <DarkModeToggle />
+          </div>
         </div>
       </header>
 
