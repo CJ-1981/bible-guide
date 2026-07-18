@@ -2,14 +2,28 @@
 
 import { useState, useMemo } from 'react';
 import { bibleCategories, testamentInfo, type BibleCategory, type BibleBook } from '@/lib/bible-data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+function TestamentBadge({ testament }: { testament: 'old' | 'new' }) {
+  if (testament === 'old') {
+    return (
+      <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100">
+        구약
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="text-[10px] px-1.5 py-0 bg-sky-100 text-sky-800 border-sky-200 hover:bg-sky-100">
+      신약
+    </Badge>
+  );
+}
 
 function HeroSection() {
   return (
@@ -101,7 +115,12 @@ function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: str
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-lg leading-tight">{book.name}</h3>
+                  <TestamentBadge testament={book.testament} />
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   <span className="text-xs text-muted-foreground">{book.nameEn}</span>
+                  <span className="text-xs text-muted-foreground/50">·</span>
+                  <span className="text-xs text-muted-foreground font-medium">{book.writtenDate}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
                   <Badge variant="outline" className="text-xs">{book.chapters}장</Badge>
@@ -125,7 +144,10 @@ function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: str
               {book.icon}
             </div>
             <div>
-              <DialogTitle className="text-2xl">{book.name}</DialogTitle>
+              <div className="flex items-center gap-2">
+                <DialogTitle className="text-2xl">{book.name}</DialogTitle>
+                <TestamentBadge testament={book.testament} />
+              </div>
               <p className="text-sm text-muted-foreground">{book.nameEn} · {book.chapters}장</p>
             </div>
           </div>
@@ -152,7 +174,7 @@ function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: str
             </blockquote>
           </div>
           <Separator />
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div>
               <h4 className="font-semibold text-base flex items-center gap-2">
                 <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: categoryColor }} />
@@ -161,6 +183,18 @@ function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: str
             </div>
             <Badge className="text-sm" style={{ backgroundColor: categoryColor, color: 'white' }}>
               {book.keyTheme}
+            </Badge>
+          </div>
+          <Separator />
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              <h4 className="font-semibold text-base flex items-center gap-2">
+                <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: categoryColor }} />
+                기록 연대
+              </h4>
+            </div>
+            <Badge variant="outline" className="text-sm font-mono">
+              {book.writtenDate}
             </Badge>
           </div>
         </div>
@@ -182,23 +216,94 @@ function CategorySection({ category }: { category: BibleCategory }) {
   );
 }
 
-function TestamentOverview({ testament }: { testament: 'old' | 'new' }) {
-  const info = testamentInfo[testament];
-  const cats = bibleCategories.filter((c) => c.testament === testament);
+/* ────────────────────────── 연대별 타임라인 ────────────────────────── */
+
+function parseDateForSort(dateStr: string): number {
+  const cleaned = dateStr.replace(/[~\s]/g, '');
+  if (cleaned.startsWith('B.C.')) {
+    const num = parseFloat(cleaned.replace('B.C.', ''));
+    return -num;
+  }
+  if (cleaned.startsWith('A.D.')) {
+    const num = parseFloat(cleaned.replace('A.D.', ''));
+    return num;
+  }
+  return 0;
+}
+
+function TimelineView() {
+  const allBooks = useMemo(() => {
+    const books: (BibleBook & { categoryName: string; categoryColor: string })[] = [];
+    for (const cat of bibleCategories) {
+      for (const book of cat.books) {
+        books.push({ ...book, categoryName: cat.name, categoryColor: cat.color });
+      }
+    }
+    return books.sort((a, b) => parseDateForSort(a.writtenDate) - parseDateForSort(b.writtenDate));
+  }, []);
+
+  const [expandedBook, setExpandedBook] = useState<string | null>(null);
 
   return (
-    <div className="space-y-8">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold">{info.name}</h2>
-        <p className="text-muted-foreground text-sm mt-1">{info.nameEn} · {info.bookCount}권</p>
-        <p className="text-muted-foreground text-base mt-2 max-w-lg mx-auto">{info.description}</p>
+    <div className="relative">
+      {/* 세로선 */}
+      <div className="absolute left-4 md:left-6 top-0 bottom-0 w-0.5 bg-border" />
+
+      <div className="space-y-0">
+        {allBooks.map((book, idx) => {
+          const isExpanded = expandedBook === book.nameEn;
+          return (
+            <div key={book.nameEn} className="relative pl-12 md:pl-16 pb-4">
+              {/* 타임라인 점 */}
+              <div
+                className="absolute left-2.5 md:left-4.5 top-2 w-3.5 h-3.5 rounded-full border-2 border-background"
+                style={{ backgroundColor: book.categoryColor }}
+              />
+
+              {/* 연도 라벨 */}
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-mono font-semibold text-muted-foreground">
+                  {book.writtenDate}
+                </span>
+                <TestamentBadge testament={book.testament} />
+              </div>
+
+              {/* 책 카드 */}
+              <Card
+                className="cursor-pointer hover:shadow-md transition-all border-l-3"
+                style={{ borderLeftColor: book.categoryColor }}
+                onClick={() => setExpandedBook(isExpanded ? null : book.nameEn)}
+              >
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{book.icon}</span>
+                    <h4 className="font-bold text-sm">{book.name}</h4>
+                    <span className="text-xs text-muted-foreground">{book.nameEn}</span>
+                    <Badge variant="outline" className="text-[10px]">{book.chapters}장</Badge>
+                    <Badge variant="secondary" className="text-[10px]">{book.keyTheme}</Badge>
+                  </div>
+                  {isExpanded && (
+                    <div className="mt-3 space-y-3">
+                      <p className="text-sm text-foreground/85 leading-relaxed">{book.summary}</p>
+                      <blockquote
+                        className="border-l-3 pl-3 py-1.5 text-xs italic leading-relaxed text-foreground/75"
+                        style={{ borderColor: book.categoryColor, backgroundColor: `${book.categoryColor}08` }}
+                      >
+                        {book.keyVerse}
+                      </blockquote>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          );
+        })}
       </div>
-      {cats.map((category) => (
-        <CategorySection key={category.id} category={category} />
-      ))}
     </div>
   );
 }
+
+/* ────────────────────────── 메인 페이지 ────────────────────────── */
 
 export default function Home() {
   const [search, setSearch] = useState('');
@@ -224,7 +329,8 @@ export default function Home() {
               b.nameEn.toLowerCase().includes(q) ||
               b.keyTheme.includes(q) ||
               b.summary.includes(q) ||
-              b.keyVerse.includes(q)
+              b.keyVerse.includes(q) ||
+              b.writtenDate.toLowerCase().includes(q)
           ),
         }))
         .filter((c) => c.books.length > 0);
@@ -252,7 +358,7 @@ export default function Home() {
           </div>
           <div className="flex-1 max-w-md">
             <Input
-              placeholder="책 이름, 주제 검색..."
+              placeholder="책 이름, 주제, 연도 검색..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full"
@@ -284,6 +390,15 @@ export default function Home() {
                 {cat.name} ({cat.books.length})
               </Button>
             ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs border-emerald-500 text-emerald-600"
+              onClick={() => scrollToCategory('timeline')}
+            >
+              <span className="mr-1">🕐</span>
+              연대별
+            </Button>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -306,6 +421,28 @@ export default function Home() {
             {filteredCategories.map((category) => (
               <CategorySection key={category.id} category={category} />
             ))}
+
+            {/* 연대별 타임라인 */}
+            <section id="timeline" className="mb-12 scroll-mt-20">
+              <div className="rounded-xl overflow-hidden mb-6" style={{ minHeight: '120px' }}>
+                <div className="bg-gradient-to-r from-emerald-700 to-emerald-900 p-6 md:p-8">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="text-xs bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                      전체
+                    </Badge>
+                    <Badge variant="outline" className="text-xs text-white border-white/40">
+                      66권
+                    </Badge>
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-white">연대별 타임라인</h2>
+                  <p className="text-white/70 text-sm mt-1">Chronological Timeline</p>
+                  <p className="text-white/80 text-sm md:text-base mt-2 max-w-2xl leading-relaxed">
+                    성경 66권을 기록 연대순으로 나열합니다. 카드를 클릭하면 상세 내용을 볼 수 있습니다.
+                  </p>
+                </div>
+              </div>
+              <TimelineView />
+            </section>
           </div>
         )}
       </main>
