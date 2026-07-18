@@ -399,15 +399,25 @@ export default function Home() {
             </Badge>
           )}
           {/* 네비게이션 & 다크모드 */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-0.5 flex-shrink-0">
             <Link href="/characters">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8">
-                <span>👥</span><span className="hidden md:inline">인물도</span>
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2">
+                <span>👥</span><span className="hidden lg:inline">인물도</span>
               </Button>
             </Link>
             <Link href="/map">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8">
-                <span>🗺️</span><span className="hidden md:inline">지도</span>
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2">
+                <span>🗺️</span><span className="hidden lg:inline">지도</span>
+              </Button>
+            </Link>
+            <Link href="/prophecy">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2">
+                <span>🔗</span><span className="hidden lg:inline">예언-성취</span>
+              </Button>
+            </Link>
+            <Link href="/harmony">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2">
+                <span>📚</span><span className="hidden lg:inline">사화조화</span>
               </Button>
             </Link>
             <DarkModeToggle />

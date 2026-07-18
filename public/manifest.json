@@ -1,0 +1,59 @@
+{
+  "name": "성경 요약 가이드",
+  "short_name": "성경가이드",
+  "description": "구약 39권, 신약 27권 — 성경 66권의 핵심 메시지를 한눈에 이해하세요. 인물 관계도, 성경 지도, 예언-성취 비교, 사화조화 제공.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#8B6914",
+  "orientation": "any",
+  "lang": "ko",
+  "categories": ["education", "books"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-120.png",
+      "sizes": "120x120",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "인물 관계도",
+      "url": "/characters",
+      "description": "성경 주요 인물의 관계를 시각적으로 확인"
+    },
+    {
+      "name": "성경 지도",
+      "url": "/map",
+      "description": "성경 주요 사건 장소를 지도에서 확인"
+    },
+    {
+      "name": "예언-성취 비교",
+      "url": "/prophecy",
+      "description": "구약 예언과 신약 성취를 비교"
+    },
+    {
+      "name": "사화조화",
+      "url": "/harmony",
+      "description": "네 복음서의 동일 사건을 나란히 비교"
+    }
+  ]
+}
