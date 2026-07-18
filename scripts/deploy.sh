@@ -14,7 +14,7 @@ set -e
 
 # --- 설정 ---
 REPO_NAME="bible-guide"  # ← 리포지토리 이름으로 변경하세요
-GH_USERNAME=""           # ← GitHub 사용자명 (빈 값이면 자동 감지)
+GH_USERNAME="CJ-1981"           # ← GitHub 사용자명 (빈 값이면 자동 감지)
 BRANCH="main"
 DEPLOY_BRANCH="gh-pages"
 
