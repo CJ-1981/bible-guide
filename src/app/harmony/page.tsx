@@ -129,17 +129,18 @@ export default function HarmonyPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity" title="메인 페이지로 이동">
             <span className="text-2xl">📖</span>
             <h1 className="text-lg font-bold hidden sm:block">성경 요약 가이드</h1>
           </Link>
           <Separator orientation="vertical" className="h-6" />
           <span className="text-sm font-semibold">📚 사화조화</span>
           <div className="flex-1" />
-          <div className="flex items-center gap-1.5">
-            <Link href="/characters"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8"><span>👥</span><span className="hidden md:inline">인물도</span></Button></Link>
-            <Link href="/map"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8"><span>🗺️</span><span className="hidden md:inline">지도</span></Button></Link>
-            <Link href="/prophecy"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8"><span>🔗</span><span className="hidden md:inline">예언-성취</span></Button></Link>
+          <div className="flex items-center gap-0.5">
+            <Link href="/"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="홈 — 메인 페이지로 이동"><span>🏠</span><span className="hidden md:inline">홈</span></Button></Link>
+            <Link href="/characters"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="인물 관계도 — 성경 인물들의 관계를 그래프로 확인"><span>👥</span><span className="hidden md:inline">인물도</span></Button></Link>
+            <Link href="/map"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="성경 지도 — 주요 사건 장소와 여정 경로 확인"><span>🗺️</span><span className="hidden md:inline">지도</span></Button></Link>
+            <Link href="/prophecy"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="예언-성취 비교 — 구약 예언과 신약 성취를 나란히 비교"><span>🔗</span><span className="hidden md:inline">예언-성취</span></Button></Link>
             <DarkModeToggle />
           </div>
         </div>

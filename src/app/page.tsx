@@ -401,22 +401,22 @@ export default function Home() {
           {/* 네비게이션 & 다크모드 */}
           <div className="flex items-center gap-0.5 flex-shrink-0">
             <Link href="/characters">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="인물 관계도 — 성경 인물들의 관계를 그래프로 확인">
                 <span>👥</span><span className="hidden lg:inline">인물도</span>
               </Button>
             </Link>
             <Link href="/map">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="성경 지도 — 주요 사건 장소와 여정 경로 확인">
                 <span>🗺️</span><span className="hidden lg:inline">지도</span>
               </Button>
             </Link>
             <Link href="/prophecy">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="예언-성취 비교 — 구약 예언과 신약 성취를 나란히 비교">
                 <span>🔗</span><span className="hidden lg:inline">예언-성취</span>
               </Button>
             </Link>
             <Link href="/harmony">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="사화조화 — 네 복음서의 동일 사건 병렬 비교">
                 <span>📚</span><span className="hidden lg:inline">사화조화</span>
               </Button>
             </Link>
