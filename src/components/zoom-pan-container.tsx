@@ -32,15 +32,50 @@ export default function ZoomPanContainer({
   const lastTouchCenterRef = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const clampZoom = useCallback((z: number) => Math.max(minZoom, Math.min(maxZoom, z)), [minZoom, maxZoom]);
+  // 줌 + 팬을 함께 업데이트하는 함수 (커서/중앙 기준 줌)
+  const zoomTo = useCallback((
+    newZoom: number,
+    pivotX: number, // 컨테이너 내에서의 기준점 X
+    pivotY: number, // 컨테이너 내에서의 기준점 Y
+    currentZoom: number,
+    currentPan: { x: number; y: number },
+  ) => {
+    const clampedZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+    // 기준점 아래의 콘텐츠 좌표
+    const contentX = (pivotX - currentPan.x) / currentZoom;
+    const contentY = (pivotY - currentPan.y) / currentZoom;
+    // 새 줌에서 같은 콘텐츠 점이 기준점에 오도록 팬 보정
+    const newPanX = pivotX - contentX * clampedZoom;
+    const newPanY = pivotY - contentY * clampedZoom;
+    return { zoom: clampedZoom, pan: { x: newPanX, y: newPanY } };
+  }, [minZoom, maxZoom]);
+
+  // 상태를 동시 업데이트하기 위한 ref
+  const stateRef = useRef({ zoom, pan });
+  stateRef.current = { zoom, pan };
 
   const handleZoomIn = useCallback(() => {
-    setZoom(prev => clampZoom(prev + 0.2));
-  }, [clampZoom]);
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    // 뷰포트 중앙을 기준으로 줌
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const result = zoomTo(stateRef.current.zoom + 0.2, centerX, centerY, stateRef.current.zoom, stateRef.current.pan);
+    setZoom(result.zoom);
+    setPan(result.pan);
+  }, [zoomTo]);
 
   const handleZoomOut = useCallback(() => {
-    setZoom(prev => clampZoom(prev - 0.2));
-  }, [clampZoom]);
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const result = zoomTo(stateRef.current.zoom - 0.2, centerX, centerY, stateRef.current.zoom, stateRef.current.pan);
+    setZoom(result.zoom);
+    setPan(result.pan);
+  }, [zoomTo]);
 
   const handleReset = useCallback(() => {
     setZoom(initialZoom);
@@ -49,13 +84,12 @@ export default function ZoomPanContainer({
 
   // ─── Mouse events ─────────────────────────────────────────
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only left click
     if (e.button !== 0) return;
     e.preventDefault();
     setIsDragging(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
-    panStartRef.current = { ...pan };
-  }, [pan]);
+    panStartRef.current = { ...stateRef.current.pan };
+  }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
@@ -72,23 +106,37 @@ export default function ZoomPanContainer({
     setIsDragging(false);
   }, []);
 
-  // ─── Wheel zoom ─────────────────────────────────────────
+  // ─── Wheel zoom (cursor-centered) ────────────────────────
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    // 마우스 커서의 컨테이너 내 상대 좌표
+    const cursorX = e.clientX - rect.left;
+    const cursorY = e.clientY - rect.top;
+
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setZoom(prev => clampZoom(prev + delta));
-  }, [clampZoom]);
+    const result = zoomTo(
+      stateRef.current.zoom + delta,
+      cursorX,
+      cursorY,
+      stateRef.current.zoom,
+      stateRef.current.pan,
+    );
+    setZoom(result.zoom);
+    setPan(result.pan);
+  }, [zoomTo]);
 
   // ─── Touch events (mobile) ──────────────────────────────
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
-      // Single finger: pan
       setIsDragging(true);
       dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      panStartRef.current = { ...pan };
+      panStartRef.current = { ...stateRef.current.pan };
     } else if (e.touches.length === 2) {
-      // Two fingers: pinch zoom
       setIsDragging(false);
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
@@ -99,14 +147,13 @@ export default function ZoomPanContainer({
       const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       lastTouchCenterRef.current = { x: cx, y: cy };
     }
-  }, [pan]);
+  }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (e.touches.length === 1 && isDragging) {
-      // Single finger pan
       const dx = e.touches[0].clientX - dragStartRef.current.x;
       const dy = e.touches[0].clientY - dragStartRef.current.y;
       setPan({
@@ -114,27 +161,37 @@ export default function ZoomPanContainer({
         y: panStartRef.current.y + dy,
       });
     } else if (e.touches.length === 2 && lastTouchDistRef.current !== null) {
-      // Pinch zoom
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY,
       );
       const scale = dist / lastTouchDistRef.current;
-      const newZoom = clampZoom(zoom * scale);
-      setZoom(newZoom);
+      const newZoom = Math.max(minZoom, Math.min(maxZoom, stateRef.current.zoom * scale));
       lastTouchDistRef.current = dist;
 
-      // Pan during pinch
+      // 핀치 중심점 (컨테이너 내 상대 좌표)
+      const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+      const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+      const result = zoomTo(newZoom, cx, cy, stateRef.current.zoom, stateRef.current.pan);
+      setZoom(result.zoom);
+      setPan(result.pan);
+
+      // 추가 드래그 팬 보정
       if (lastTouchCenterRef.current) {
-        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        const dx = cx - lastTouchCenterRef.current.x;
-        const dy = cy - lastTouchCenterRef.current.y;
-        setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-        lastTouchCenterRef.current = { x: cx, y: cy };
+        const dragCx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const dragCy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const dragDx = dragCx - lastTouchCenterRef.current.x;
+        const dragDy = dragCy - lastTouchCenterRef.current.y;
+        setPan(prev => ({ x: prev.x + dragDx, y: prev.y + dragDy }));
+        lastTouchCenterRef.current = { x: dragCx, y: dragCy };
       }
     }
-  }, [isDragging, zoom, clampZoom]);
+  }, [isDragging, minZoom, maxZoom, zoomTo]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
@@ -161,8 +218,6 @@ export default function ZoomPanContainer({
   }, [handleZoomIn, handleZoomOut, handleReset]);
 
   // ─── Prevent default touch behavior on the container ───
-  // This is critical for mobile: prevents the browser from scrolling
-  // the page when the user tries to pan/zoom the SVG
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -216,7 +271,7 @@ export default function ZoomPanContainer({
         ref={containerRef}
         className="overflow-hidden rounded-lg border bg-muted/20 select-none"
         style={{
-          touchAction: 'none', // Critical: prevents browser touch gestures
+          touchAction: 'none',
           cursor: isDragging ? 'grabbing' : 'grab',
         }}
         onMouseDown={handleMouseDown}

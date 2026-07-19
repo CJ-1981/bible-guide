@@ -115,11 +115,13 @@ function RelationEdge({
   fromPos,
   toPos,
   highlighted,
+  edgeIndex = 0,
 }: {
   relation: CharacterRelation;
   fromPos: { x: number; y: number };
   toPos: { x: number; y: number };
   highlighted: boolean;
+  edgeIndex?: number;
 }) {
   const color = relationColors[relation.type] || '#666';
   const NODE_RADIUS = 34; // 원 외곽선에 맞추기 위한 반경 (기본 32 + 여유 2)
@@ -139,8 +141,21 @@ function RelationEdge({
   const x2 = toPos.x - NODE_RADIUS * ux;
   const y2 = toPos.y - NODE_RADIUS * uy;
 
-  const midX = (x1 + x2) / 2;
-  const midY = (y1 + y2) / 2;
+  // 라벨 위치: 중간점 + 수직 방향 오프셋 (겹침 방지)
+  // 선에 수직인 방향: (-uy, ux)
+  // edgeIndex를 이용해 번갈아가며 위/아래로 벌림
+  const LABEL_OFFSET_BASE = 14; // 기본 오프셋 간격
+  const offsetSign = edgeIndex % 2 === 0 ? 1 : -1; // 홀짝 번갈아 위/아래
+  const offsetDist = LABEL_OFFSET_BASE * (Math.floor(edgeIndex / 2) + 1); // 1, 1, 2, 2, 3, 3 ...
+  const perpX = -uy * offsetSign * offsetDist;
+  const perpY = ux * offsetSign * offsetDist;
+
+  const midX = (x1 + x2) / 2 + perpX;
+  const midY = (y1 + y2) / 2 + perpY;
+
+  // 라벨 너비를 텍스트 길이에 맞게 계산
+  const labelLen = relation.label.length;
+  const labelWidth = Math.max(40, labelLen * 8 + 12);
 
   return (
     <g style={{ opacity: highlighted ? 1 : 0.15, transition: 'opacity 0.3s' }}>
@@ -155,14 +170,26 @@ function RelationEdge({
       />
       {highlighted && (
         <g>
+          {/* 라벨 연결선 (중간점에서 오프셋된 라벨 위치로) */}
+          {offsetDist > 0 && (
+            <line
+              x1={(x1 + x2) / 2}
+              y1={(y1 + y2) / 2}
+              x2={midX}
+              y2={midY}
+              stroke={color}
+              strokeWidth={1}
+              opacity={0.5}
+            />
+          )}
           <rect
-            x={midX - 28}
-            y={midY - 9}
-            width={56}
-            height={18}
-            rx={9}
+            x={midX - labelWidth / 2}
+            y={midY - 10}
+            width={labelWidth}
+            height={20}
+            rx={10}
             fill={color}
-            opacity={0.9}
+            opacity={0.92}
           />
           <text
             x={midX}
@@ -326,21 +353,29 @@ export default function CharactersPage() {
               })()}
 
               {/* 관계 선 */}
-              {filteredRelations.map((rel, i) => {
-                const fromPos = positions[rel.from];
-                const toPos = positions[rel.to];
-                if (!fromPos || !toPos) return null;
-                const highlighted = !selectedId || rel.from === selectedId || rel.to === selectedId;
-                return (
-                  <RelationEdge
-                    key={`${rel.from}-${rel.to}-${i}`}
-                    relation={rel}
-                    fromPos={fromPos}
-                    toPos={toPos}
-                    highlighted={highlighted}
-                  />
-                );
-              })}
+              {(() => {
+                // 같은 출발 노드(from) 기준으로 그룹화하여 로컬 인덱스 부여
+                const fromGroupIndex: Record<string, number> = {};
+                return filteredRelations.map((rel, i) => {
+                  const fromPos = positions[rel.from];
+                  const toPos = positions[rel.to];
+                  if (!fromPos || !toPos) return null;
+                  const highlighted = !selectedId || rel.from === selectedId || rel.to === selectedId;
+                  const key = `${rel.from}-${rel.to}-${i}`;
+                  const localIdx = fromGroupIndex[rel.from] ?? 0;
+                  fromGroupIndex[rel.from] = localIdx + 1;
+                  return (
+                    <RelationEdge
+                      key={key}
+                      relation={rel}
+                      fromPos={fromPos}
+                      toPos={toPos}
+                      highlighted={highlighted}
+                      edgeIndex={localIdx}
+                    />
+                  );
+                });
+              })()}
 
               {/* 인물 노드 */}
               {filteredChars.map(char => (
