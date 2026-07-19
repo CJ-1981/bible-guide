@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { bibleLocations, bibleRoutes, type BibleLocation, type BibleRoute } from '@/lib/map-data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Link from 'next/link';
+
+// ─── 줌/팬 상수 ───
+const ZOOM_MIN = 0.3;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.2;
+const PAN_STEP = 80;
 
 // 지도 배경 - 지중해와 중동 지역의 간소화된 윤곽
 function MapBackground() {
@@ -206,10 +213,81 @@ function RoutePath({
   );
 }
 
+// ─── 줌 컨트롤 플로팅 버튼 ───
+function ZoomControls({
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onReset,
+  onFit,
+}: {
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onReset: () => void;
+  onFit: () => void;
+}) {
+  const zoomPercent = Math.round(zoom * 100);
+
+  return (
+    <div className="absolute bottom-4 left-4 z-40 flex flex-col gap-1.5">
+      <button
+        onClick={onZoomIn}
+        disabled={zoom >= ZOOM_MAX}
+        className="w-10 h-10 rounded-lg bg-background/90 hover:bg-muted border border-border shadow-md flex items-center justify-center text-lg font-bold transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
+        aria-label="확대"
+        title="확대 (+)"
+      >
+        +
+      </button>
+      <button
+        onClick={onZoomOut}
+        disabled={zoom <= ZOOM_MIN}
+        className="w-10 h-10 rounded-lg bg-background/90 hover:bg-muted border border-border shadow-md flex items-center justify-center text-lg font-bold transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
+        aria-label="축소"
+        title="축소 (-)"
+      >
+        −
+      </button>
+      <div className="text-center text-[10px] font-mono text-muted-foreground py-0.5 select-none">
+        {zoomPercent}%
+      </div>
+      <button
+        onClick={onReset}
+        className="w-10 h-10 rounded-lg bg-background/90 hover:bg-muted border border-border shadow-md flex items-center justify-center transition-all duration-150"
+        aria-label="원본 크기"
+        title="100% (0)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+      </button>
+      <button
+        onClick={onFit}
+        className="w-10 h-10 rounded-lg bg-background/90 hover:bg-muted border border-border shadow-md flex items-center justify-center transition-all duration-150"
+        aria-label="화면에 맞추기"
+        title="화면 맞춤 (F)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="m21 3-7 7" /><path d="m3 21 7-7" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 export default function MapPage() {
   const [selectedLocation, setSelectedLocation] = useState<BibleLocation | null>(null);
   const [filter, setFilter] = useState<'all' | 'old' | 'new'>('all');
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
+
+  // ─── 줌 & 팬 상태 ───
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const svgContainerRef = useRef<HTMLDivElement>(null);
 
   const filteredLocations = useMemo(() => {
     if (filter === 'all') return bibleLocations;
@@ -217,14 +295,93 @@ export default function MapPage() {
     return bibleLocations.filter(l => l.testament === 'new' || l.testament === 'both');
   }, [filter]);
 
+  // ─── 줌 핸들러 ───
+  const handleZoomIn = useCallback(() => {
+    setZoom(prev => Math.min(prev + ZOOM_STEP, ZOOM_MAX));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom(prev => Math.max(prev - ZOOM_STEP, ZOOM_MIN));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  const handleFit = useCallback(() => {
+    if (!svgContainerRef.current) return;
+    const container = svgContainerRef.current;
+    const containerWidth = container.clientWidth - 16;
+    const fitZoom = Math.min(containerWidth / 1000, 1);
+    setZoom(fitZoom);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // ─── 마우스 휠 줌 ───
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -ZOOM_STEP / 2 : ZOOM_STEP / 2;
+    setZoom(prev => {
+      const next = Math.min(Math.max(prev + delta, ZOOM_MIN), ZOOM_MAX);
+      return Math.round(next * 100) / 100;
+    });
+  }, []);
+
+  // ─── 팬(드래그) 핸들러 ───
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const target = e.target as SVGElement;
+    if (target.closest('.cursor-pointer')) return;
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning) return;
+    setPan({
+      x: e.clientX - panStart.x,
+      y: e.clientY - panStart.y,
+    });
+  }, [isPanning, panStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  // ─── 키보드 단축키 ───
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      switch (e.key) {
+        case '+': case '=': handleZoomIn(); break;
+        case '-': handleZoomOut(); break;
+        case '0': handleReset(); break;
+        case 'f': case 'F': handleFit(); break;
+        case 'ArrowUp': setPan(p => ({ ...p, y: p.y + PAN_STEP })); break;
+        case 'ArrowDown': setPan(p => ({ ...p, y: p.y - PAN_STEP })); break;
+        case 'ArrowLeft': setPan(p => ({ ...p, x: p.x + PAN_STEP })); break;
+        case 'ArrowRight': setPan(p => ({ ...p, x: p.x - PAN_STEP })); break;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleZoomIn, handleZoomOut, handleReset, handleFit]);
+
+  // 필터 변경 시 줌/팬 초기화
+  useEffect(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, [filter, selectedRoute]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-4">
-          <a href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity">
             <span className="text-2xl">📖</span>
             <h1 className="text-lg font-bold hidden sm:block">성경 요약 가이드</h1>
-          </a>
+          </Link>
           <Separator orientation="vertical" className="h-6" />
           <span className="text-sm font-semibold">🗺️ 성경 지도</span>
         </div>
@@ -242,6 +399,7 @@ export default function MapPage() {
             <p className="text-white/70 text-sm mt-1">Bible Map</p>
             <p className="text-white/80 text-sm md:text-base mt-2 max-w-2xl leading-relaxed">
               성경 주요 사건이 일어난 장소를 지도에서 확인하세요. 여정 경로를 선택하면 이동 동선을 볼 수 있습니다.
+              마우스 휠로 확대/축소, 드래그로 이동할 수 있습니다.
             </p>
           </div>
         </div>
@@ -308,40 +466,73 @@ export default function MapPage() {
           );
         })()}
 
-        {/* SVG 지도 */}
-        <Card className="overflow-auto mb-8">
-          <CardContent className="p-2">
-            <svg
-              width={1000}
-              height={700}
-              viewBox="0 0 1000 700"
-              className="w-full h-auto"
-              style={{ minWidth: 800 }}
+        {/* SVG 지도 — 줌 & 팬 가능 */}
+        <Card className="overflow-hidden mb-8 relative">
+          <CardContent className="p-0">
+            <div
+              ref={svgContainerRef}
+              className="overflow-hidden relative"
+              style={{ cursor: isPanning ? 'grabbing' : 'grab', minHeight: '400px' }}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
             >
-              {/* 지도 배경 */}
-              <MapBackground />
+              <svg
+                width={1000}
+                height={700}
+                viewBox="0 0 1000 700"
+                style={{
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  transformOrigin: '0 0',
+                  transition: isPanning ? 'none' : 'transform 0.15s ease-out',
+                  minWidth: 800,
+                }}
+              >
+                {/* 지도 배경 */}
+                <MapBackground />
 
-              {/* 여정 경로 */}
-              {bibleRoutes.map(route => (
-                <RoutePath
-                  key={route.id}
-                  route={route}
-                  locations={filteredLocations}
-                  highlighted={!selectedRoute || selectedRoute === route.id}
-                />
-              ))}
+                {/* 여정 경로 */}
+                {bibleRoutes.map(route => (
+                  <RoutePath
+                    key={route.id}
+                    route={route}
+                    locations={filteredLocations}
+                    highlighted={!selectedRoute || selectedRoute === route.id}
+                  />
+                ))}
 
-              {/* 위치 마커 */}
-              {filteredLocations.map(loc => (
-                <LocationMarker
-                  key={loc.id}
-                  location={loc}
-                  isSelected={selectedLocation?.id === loc.id}
-                  highlightedRoute={selectedRoute}
-                  onClick={() => setSelectedLocation(prev => prev?.id === loc.id ? null : loc)}
-                />
-              ))}
-            </svg>
+                {/* 위치 마커 */}
+                {filteredLocations.map(loc => (
+                  <LocationMarker
+                    key={loc.id}
+                    location={loc}
+                    isSelected={selectedLocation?.id === loc.id}
+                    highlightedRoute={selectedRoute}
+                    onClick={() => setSelectedLocation(prev => prev?.id === loc.id ? null : loc)}
+                  />
+                ))}
+              </svg>
+
+              {/* 줌 컨트롤 플로팅 버튼 */}
+              <ZoomControls
+                zoom={zoom}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onReset={handleReset}
+                onFit={handleFit}
+              />
+
+              {/* 줌 힌트 배지 */}
+              <div className="absolute top-3 right-3 flex items-center gap-2 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-border/50 select-none">
+                <span>🖱️ 휠: 줌</span>
+                <span className="text-border">|</span>
+                <span>✋ 드래그: 이동</span>
+                <span className="text-border">|</span>
+                <span>⌨️ +/-/0/F</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
