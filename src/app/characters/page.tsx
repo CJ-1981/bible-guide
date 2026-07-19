@@ -122,16 +122,33 @@ function RelationEdge({
   highlighted: boolean;
 }) {
   const color = relationColors[relation.type] || '#666';
-  const midX = (fromPos.x + toPos.x) / 2;
-  const midY = (fromPos.y + toPos.y) / 2;
+  const NODE_RADIUS = 34; // 원 외곽선에 맞추기 위한 반경 (기본 32 + 여유 2)
+
+  // 두 중심점 사이의 방향 벡터로 원 외곽 교차점 계산
+  const dx = toPos.x - fromPos.x;
+  const dy = toPos.y - fromPos.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const safeDist = Math.max(dist, 1); // 0으로 나누기 방지
+  const ux = dx / safeDist;
+  const uy = dy / safeDist;
+
+  // fromPos 원의 외곽선에서 시작
+  const x1 = fromPos.x + NODE_RADIUS * ux;
+  const y1 = fromPos.y + NODE_RADIUS * uy;
+  // toPos 원의 외곽선에서 끝
+  const x2 = toPos.x - NODE_RADIUS * ux;
+  const y2 = toPos.y - NODE_RADIUS * uy;
+
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
 
   return (
     <g style={{ opacity: highlighted ? 1 : 0.15, transition: 'opacity 0.3s' }}>
       <line
-        x1={fromPos.x}
-        y1={fromPos.y}
-        x2={toPos.x}
-        y2={toPos.y}
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
         stroke={color}
         strokeWidth={highlighted ? 2.5 : 1}
         strokeDasharray={relation.type === '조상-후손' ? '6 3' : relation.type === '선택-부름' ? '3 3' : 'none'}
