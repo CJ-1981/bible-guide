@@ -409,6 +409,11 @@ export default function Home() {
           )}
           {/* 네비게이션 & 다크모드 */}
           <div className="flex items-center gap-0.5 flex-shrink-0">
+            <Link href="/topics">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="주제별 가이드">
+                <span>📌</span><span className="hidden lg:inline">주제별</span>
+              </Button>
+            </Link>
             <Link href="/characters">
               <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="인물 관계도">
                 <span>👥</span><span className="hidden lg:inline">인물도</span>
