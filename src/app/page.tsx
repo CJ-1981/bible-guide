@@ -292,9 +292,18 @@ function TimelineView() {
 
               {/* 책 카드 */}
               <Card
-                className="cursor-pointer hover:shadow-md transition-all border-l-3"
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                className="cursor-pointer hover:shadow-md transition-all border-l-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
                 style={{ borderLeftColor: book.categoryColor }}
                 onClick={() => setExpandedBook(isExpanded ? null : book.nameEn)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedBook(isExpanded ? null : book.nameEn);
+                  }
+                }}
               >
                 <CardContent className="p-3 md:p-4">
                   <div className="flex items-center gap-2">
