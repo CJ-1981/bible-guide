@@ -409,6 +409,11 @@ export default function Home() {
           )}
           {/* 네비게이션 & 다크모드 */}
           <div className="flex items-center gap-0.5 flex-shrink-0">
+            <Link href="/reading">
+              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="성경 읽기표">
+                <span>📅</span><span className="hidden lg:inline">읽기표</span>
+              </Button>
+            </Link>
             <Link href="/topics">
               <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="주제별 가이드">
                 <span>📌</span><span className="hidden lg:inline">주제별</span>
