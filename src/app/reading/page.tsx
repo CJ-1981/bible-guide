@@ -32,7 +32,7 @@ function DarkModeToggle() {
   );
 }
 
-function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: string }) {
+function ReadingBookCard({ book, categoryColor }: { book: BibleBook; categoryColor: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -63,7 +63,7 @@ function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: str
                   <span className="text-xs text-muted-foreground font-medium">{book.writtenDate}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <Badge variant="outline" className="text-xs">{book.chapters}장</Badge>
+                  <Badge variant="outline" className="text-xs font-semibold">{book.chapters}장</Badge>
                   <Badge variant="secondary" className="text-xs">{book.keyTheme}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
@@ -90,7 +90,7 @@ function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: str
                   {book.testament === 'old' ? '구약' : '신약'}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{book.nameEn} · {book.chapters}장</p>
+              <p className="text-sm text-muted-foreground">{book.nameEn} · 총 {book.chapters}장</p>
             </div>
           </div>
         </DialogHeader>
@@ -98,7 +98,24 @@ function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: str
           <div>
             <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
               <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: categoryColor }} />
-              책 개요
+              장별 구성 ({book.chapters}장)
+            </h4>
+            <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 border rounded-md">
+              {Array.from({ length: book.chapters }, (_, i) => i + 1).map((ch) => (
+                <span
+                  key={ch}
+                  className="px-2 py-1 text-xs border rounded bg-muted/40 font-mono"
+                >
+                  {book.name} {ch}장
+                </span>
+              ))}
+            </div>
+          </div>
+          <Separator />
+          <div>
+            <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+              <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: categoryColor }} />
+              개요 및 핵심 메시지
             </h4>
             <p className="text-sm leading-relaxed text-foreground/90">{book.summary}</p>
           </div>
@@ -115,72 +132,13 @@ function BookCard({ book, categoryColor }: { book: BibleBook; categoryColor: str
               {book.keyVerse}
             </blockquote>
           </div>
-          <Separator />
-          <div className="flex flex-wrap items-center gap-3">
-            <div>
-              <h4 className="font-semibold text-base flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: categoryColor }} />
-                핵심 주제
-              </h4>
-            </div>
-            <Badge className="text-sm" style={{ backgroundColor: categoryColor, color: 'white' }}>
-              {book.keyTheme}
-            </Badge>
-          </div>
-          <Separator />
-          <div className="flex flex-wrap items-center gap-3">
-            <div>
-              <h4 className="font-semibold text-base flex items-center gap-2">
-                <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: categoryColor }} />
-                기록 연대
-              </h4>
-            </div>
-            <Badge variant="outline" className="text-sm font-mono">
-              {book.writtenDate}
-            </Badge>
-          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function CategorySection({ category }: { category: BibleCategory }) {
-  return (
-    <section id={category.id} className="mb-12 scroll-mt-20">
-      <div className="relative w-full overflow-hidden rounded-xl mb-6" style={{ minHeight: '180px' }}>
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url('${process.env.NEXT_PUBLIC_BASE_PATH || ''}${category.image}')` }}
-        />
-        <div className={`absolute inset-0 bg-gradient-to-r ${category.gradient} opacity-75`} />
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative z-10 flex flex-col justify-end px-6 md:px-8 py-6 min-h-[180px]">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge className="text-xs bg-white/20 text-white border-white/30 backdrop-blur-sm">
-              {category.testament === 'old' ? '구약' : '신약'}
-            </Badge>
-            <Badge variant="outline" className="text-xs text-white border-white/40">
-              {category.books.length}권
-            </Badge>
-          </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white">{category.name}</h2>
-          <p className="text-white/70 text-sm mt-1">{category.nameEn}</p>
-          <p className="text-white/80 text-sm md:text-base mt-2 max-w-2xl leading-relaxed">
-            {category.description}
-          </p>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {category.books.map((book) => (
-          <BookCard key={book.nameEn} book={book} categoryColor={category.color} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export default function TopicsPage() {
+export default function ReadingPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
@@ -204,10 +162,7 @@ export default function TopicsPage() {
               b.nameEn.toLowerCase().includes(q) ||
               b.keyTheme.includes(q) ||
               b.summary.includes(q) ||
-              b.keyVerse.includes(q) ||
-              b.writtenDate.toLowerCase().includes(q) ||
-              cat.name.includes(q) ||
-              cat.nameEn.toLowerCase().includes(q)
+              b.keyVerse.includes(q)
           ),
         }))
         .filter((c) => c.books.length > 0);
@@ -216,14 +171,12 @@ export default function TopicsPage() {
     return cats;
   }, [search, activeTab]);
 
-  const totalBooks = filteredCategories.reduce((sum, c) => sum + c.books.length, 0);
-
-  const scrollToCategory = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  const totalChapters = useMemo(() => {
+    return filteredCategories.reduce(
+      (sum, c) => sum + c.books.reduce((bSum, b) => bSum + b.chapters, 0),
+      0
+    );
+  }, [filteredCategories]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -234,10 +187,10 @@ export default function TopicsPage() {
             <h1 className="text-lg font-bold hidden sm:block">성경 요약 가이드</h1>
           </Link>
           <Separator orientation="vertical" className="h-6" />
-          <span className="text-sm font-semibold">📌 주제별 가이드</span>
+          <span className="text-sm font-semibold">📅 통독일정</span>
           <div className="flex-1 max-w-xs">
             <Input
-              placeholder="주제, 서명, 연도 검색..."
+              placeholder="서명, 주제 검색..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full h-8 text-xs"
@@ -245,7 +198,7 @@ export default function TopicsPage() {
           </div>
           <div className="flex items-center gap-1.5">
             <Link href="/"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="메인 페이지"><span>🏠</span><span className="hidden md:inline">홈</span></Button></Link>
-            <Link href="/reading"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="성경 읽기표 (통독일정)"><span>📅</span><span className="hidden md:inline">통독일정</span></Button></Link>
+            <Link href="/topics"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="주제별 가이드"><span>📌</span><span className="hidden md:inline">주제별</span></Button></Link>
             <Link href="/characters"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="인물 관계도"><span>👥</span><span className="hidden md:inline">인물도</span></Button></Link>
             <Link href="/map"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="성경 지도"><span>🗺️</span><span className="hidden md:inline">지도</span></Button></Link>
             <Link href="/prophecy"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="예언-성취 비교"><span>🔗</span><span className="hidden md:inline">예언-성취</span></Button></Link>
@@ -256,46 +209,31 @@ export default function TopicsPage() {
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto px-4 md:px-8 py-6 w-full">
-        {/* 헤더 가이드 Card */}
         <div className="rounded-xl overflow-hidden mb-6" style={{ minHeight: '100px' }}>
-          <div className="bg-gradient-to-r from-amber-700 via-amber-800 to-amber-900 p-6 md:p-8">
+          <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-cyan-900 p-6 md:p-8">
             <div className="flex items-center gap-2 mb-2">
-              <Badge className="text-xs bg-white/20 text-white border-white/30 backdrop-blur-sm">주제별 분류</Badge>
-              <Badge variant="outline" className="text-xs text-white border-white/40">10개 주요 주제</Badge>
+              <Badge className="text-xs bg-white/20 text-white border-white/30 backdrop-blur-sm">통독 가이드</Badge>
+              <Badge variant="outline" className="text-xs text-white border-white/40">총 1,189장</Badge>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white">성경 주제별 가이드</h2>
-            <p className="text-white/70 text-sm mt-1">Bible Topics & Categorized Guides</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-white">성경 통독일정 가이드</h2>
+            <p className="text-white/70 text-sm mt-1">Bible Reading Chart & Plan Guide</p>
             <p className="text-white/80 text-sm md:text-base mt-2 max-w-2xl leading-relaxed">
-              모세오경, 역사서, 시가서, 대선지서, 소선지서, 복음서, 사도행전, 바울 서신, 공동 서신, 예언서까지 10가지 성경 주제 카테고리를 한눈에 살펴보세요.
+              구약 929장, 신약 260장 — 총 1,189장의 성경 66권 분량 및 권별 장 구성을 한눈에 확인하며 체계적으로 통독을 계획하세요.
             </p>
           </div>
         </div>
 
-        {/* 필터 & 탭 */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2 mb-6">
-            {bibleCategories.map((cat) => (
-              <Button
-                key={cat.id}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                style={{ borderColor: cat.color, color: cat.color }}
-                onClick={() => scrollToCategory(cat.id)}
-              >
-                <span className="mr-1">{cat.books[0]?.icon}</span>
-                {cat.name} ({cat.books.length})
-              </Button>
-            ))}
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger value="all">전체 (10개 주제 / 66권)</TabsTrigger>
-              <TabsTrigger value="old">구약 (5개 주제)</TabsTrigger>
-              <TabsTrigger value="new">신약 (5개 주제)</TabsTrigger>
+        <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-md">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">전체 (66권 / 1,189장)</TabsTrigger>
+              <TabsTrigger value="old">구약 (39권 / 929장)</TabsTrigger>
+              <TabsTrigger value="new">신약 (27권 / 260장)</TabsTrigger>
             </TabsList>
           </Tabs>
+          <div className="text-sm text-muted-foreground font-medium">
+            현재 선택된 분량: <span className="text-foreground font-bold">{totalChapters}장</span>
+          </div>
         </div>
 
         {filteredCategories.length === 0 ? (
@@ -307,7 +245,19 @@ export default function TopicsPage() {
         ) : (
           <div className="space-y-12">
             {filteredCategories.map((category) => (
-              <CategorySection key={category.id} category={category} />
+              <section key={category.id} className="mb-10">
+                <div className="flex items-center gap-3 mb-4 border-b pb-2">
+                  <div className="w-3 h-6 rounded-full" style={{ backgroundColor: category.color }} />
+                  <h3 className="text-xl font-bold">{category.name}</h3>
+                  <Badge variant="outline" className="text-xs">{category.books.length}권</Badge>
+                  <span className="text-xs text-muted-foreground">{category.description}</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {category.books.map((book) => (
+                    <ReadingBookCard key={book.nameEn} book={book} categoryColor={category.color} />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         )}
@@ -315,7 +265,7 @@ export default function TopicsPage() {
 
       <footer className="border-t bg-muted/30 mt-12">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 text-center text-sm text-muted-foreground">
-          <p>성경 요약 가이드 — 주제별 분류 (구약 5개 주제 · 신약 5개 주제)</p>
+          <p>성경 요약 가이드 — 성경 통독일정 (구약 39권 929장 · 신약 27권 260장)</p>
         </div>
       </footer>
     </div>
