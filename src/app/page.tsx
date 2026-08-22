@@ -409,36 +409,36 @@ export default function Home() {
           )}
           {/* 네비게이션 & 다크모드 */}
           <div className="flex items-center gap-0.5 flex-shrink-0">
-            <Link href="/topics">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="주제별 가이드">
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="주제별 가이드">
+              <Link href="/topics">
                 <span>📌</span><span className="hidden lg:inline">주제별</span>
-              </Button>
-            </Link>
-            <Link href="/reading">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="성경 읽기표">
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="성경 읽기표">
+              <Link href="/reading">
                 <span>📅</span><span className="hidden lg:inline">읽기표</span>
-              </Button>
-            </Link>
-            <Link href="/characters">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="인물 관계도">
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="인물 관계도">
+              <Link href="/characters">
                 <span>👥</span><span className="hidden lg:inline">인물도</span>
-              </Button>
-            </Link>
-            <Link href="/map">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="성경 지도">
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="성경 지도">
+              <Link href="/map">
                 <span>🗺️</span><span className="hidden lg:inline">지도</span>
-              </Button>
-            </Link>
-            <Link href="/prophecy">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="예언-성취 비교">
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="예언-성취 비교">
+              <Link href="/prophecy">
                 <span>🔗</span><span className="hidden lg:inline">예언-성취</span>
-              </Button>
-            </Link>
-            <Link href="/harmony">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="사복음서 조화">
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="사복음서 조화">
+              <Link href="/harmony">
                 <span>📚</span><span className="hidden lg:inline">사화조화</span>
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <DarkModeToggle />
           </div>
         </div>

@@ -137,12 +137,12 @@ export default function HarmonyPage() {
           <span className="text-sm font-semibold">📚 사화조화</span>
           <div className="flex-1" />
           <div className="flex items-center gap-1.5">
-            <Link href="/"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="메인 페이지"><span>🏠</span><span className="hidden md:inline">홈</span></Button></Link>
-            <Link href="/topics"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="주제별 가이드"><span>📌</span><span className="hidden md:inline">주제별</span></Button></Link>
-            <Link href="/reading"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="성경 읽기표"><span>📅</span><span className="hidden md:inline">읽기표</span></Button></Link>
-            <Link href="/characters"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="인물 관계도"><span>👥</span><span className="hidden md:inline">인물도</span></Button></Link>
-            <Link href="/map"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="성경 지도"><span>🗺️</span><span className="hidden md:inline">지도</span></Button></Link>
-            <Link href="/prophecy"><Button variant="ghost" size="sm" className="text-xs gap-1 h-8" title="예언-성취 비교"><span>🔗</span><span className="hidden md:inline">예언-성취</span></Button></Link>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8" title="메인 페이지"><Link href="/"><span>🏠</span><span className="hidden md:inline">홈</span></Link></Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8" title="주제별 가이드"><Link href="/topics"><span>📌</span><span className="hidden md:inline">주제별</span></Link></Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8" title="성경 읽기표"><Link href="/reading"><span>📅</span><span className="hidden md:inline">읽기표</span></Link></Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8" title="인물 관계도"><Link href="/characters"><span>👥</span><span className="hidden md:inline">인물도</span></Link></Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8" title="성경 지도"><Link href="/map"><span>🗺️</span><span className="hidden md:inline">지도</span></Link></Button>
+            <Button asChild variant="ghost" size="sm" className="text-xs gap-1 h-8" title="예언-성취 비교"><Link href="/prophecy"><span>🔗</span><span className="hidden md:inline">예언-성취</span></Link></Button>
             <DarkModeToggle />
           </div>
         </div>
