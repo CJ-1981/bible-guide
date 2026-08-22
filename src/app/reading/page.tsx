@@ -2,17 +2,24 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { bibleCategories, type BibleCategory, type BibleBook } from '@/lib/bible-data';
+import { bibleCategories, type BibleBook } from '@/lib/bible-data';
+import {
+  readingPlanMethods,
+  getBookByEn,
+  type ReadingPlanMethod,
+  type ReadingGroup,
+} from '@/lib/reading-plans';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '@/components/theme-provider';
 
 const STORAGE_KEY = 'bible_reading_tracker_v1';
+const PLAN_PREF_KEY = 'bible_reading_plan_method_pref';
 
 function DarkModeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -290,17 +297,22 @@ function ReadingBookCard({
 }
 
 export default function ReadingPage() {
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('canonical');
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'reading' | 'completed'>('all');
   const [readChapters, setReadChapters] = useState<Record<string, boolean>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load reading progress from localStorage on client mount
+  // Load progress and selected plan preference from localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setReadChapters(JSON.parse(saved));
+      const savedProgress = localStorage.getItem(STORAGE_KEY);
+      if (savedProgress) {
+        setReadChapters(JSON.parse(savedProgress));
+      }
+      const savedPlan = localStorage.getItem(PLAN_PREF_KEY);
+      if (savedPlan && readingPlanMethods.some((p) => p.id === savedPlan)) {
+        setSelectedPlanId(savedPlan);
       }
     } catch {
       // ignore
@@ -308,7 +320,15 @@ export default function ReadingPage() {
     setIsLoaded(true);
   }, []);
 
-  // Save changes to localStorage
+  const handlePlanChange = (planId: string) => {
+    setSelectedPlanId(planId);
+    try {
+      localStorage.setItem(PLAN_PREF_KEY, planId);
+    } catch {
+      // ignore
+    }
+  };
+
   const saveProgress = useCallback((newRecord: Record<string, boolean>) => {
     setReadChapters(newRecord);
     try {
@@ -356,7 +376,7 @@ export default function ReadingPage() {
     });
   }, []);
 
-  // Calculate overall statistics
+  // Overall statistics
   const stats = useMemo(() => {
     let totalRead = 0;
     let oldRead = 0;
@@ -395,65 +415,52 @@ export default function ReadingPage() {
     };
   }, [readChapters]);
 
-  const filteredCategories = useMemo(() => {
-    let cats = bibleCategories;
+  const currentPlan = useMemo(() => {
+    return readingPlanMethods.find((p) => p.id === selectedPlanId) || readingPlanMethods[0];
+  }, [selectedPlanId]);
 
-    if (activeTab === 'old') {
-      cats = cats.filter((c) => c.testament === 'old');
-    } else if (activeTab === 'new') {
-      cats = cats.filter((c) => c.testament === 'new');
-    } else if (activeTab === 'reading') {
-      // In progress
-      cats = cats
-        .map((cat) => ({
-          ...cat,
-          books: cat.books.filter((b) => {
+  // Compute filtered groups based on current plan, search query, and status filter
+  const displayedGroups = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return currentPlan.groups
+      .map((group) => {
+        const books = group.bookNamesEn
+          .map((en) => getBookByEn(en))
+          .filter((b): b is BibleBook => b !== undefined)
+          .filter((b) => {
+            // Status filter
             let bRead = 0;
             for (let ch = 1; ch <= b.chapters; ch++) {
               if (readChapters[`${b.nameEn}_${ch}`]) bRead++;
             }
-            return bRead > 0 && bRead < b.chapters;
-          }),
-        }))
-        .filter((c) => c.books.length > 0);
-    } else if (activeTab === 'completed') {
-      // Completed
-      cats = cats
-        .map((cat) => ({
-          ...cat,
-          books: cat.books.filter((b) => {
-            let bRead = 0;
-            for (let ch = 1; ch <= b.chapters; ch++) {
-              if (readChapters[`${b.nameEn}_${ch}`]) bRead++;
+            if (statusFilter === 'reading' && (bRead === 0 || bRead === b.chapters)) {
+              return false;
             }
-            return bRead === b.chapters && b.chapters > 0;
-          }),
-        }))
-        .filter((c) => c.books.length > 0);
-    }
+            if (statusFilter === 'completed' && (bRead !== b.chapters || b.chapters === 0)) {
+              return false;
+            }
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      cats = cats
-        .map((cat) => ({
-          ...cat,
-          books: cat.books.filter(
-            (b) =>
-              b.name.includes(q) ||
-              b.nameEn.toLowerCase().includes(q) ||
-              b.keyTheme.includes(q) ||
-              b.summary.includes(q) ||
-              b.keyVerse.includes(q)
-          ),
-        }))
-        .filter((c) => c.books.length > 0);
-    }
+            // Search filter
+            if (q) {
+              const nameMatch = b.name.toLowerCase().includes(q) || b.nameEn.toLowerCase().includes(q);
+              const themeMatch = b.keyTheme.toLowerCase().includes(q) || b.summary.toLowerCase().includes(q);
+              return nameMatch || themeMatch;
+            }
 
-    return cats;
-  }, [search, activeTab, readChapters]);
+            return true;
+          });
+
+        return {
+          ...group,
+          books,
+        };
+      })
+      .filter((g) => g.books.length > 0);
+  }, [currentPlan, search, statusFilter, readChapters]);
 
   const handleResetAll = () => {
-    if (confirm('모든 통독 체크 기록을 초기화하시겠습니까?')) {
+    if (confirm('모든 성경 통독 체크 기록을 초기화하시겠습니까?')) {
       saveProgress({});
     }
   };
@@ -494,12 +501,12 @@ export default function ReadingPage() {
           <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-cyan-900 p-6 md:p-8">
             <div className="flex items-center gap-2 mb-2">
               <Badge className="text-xs bg-white/20 text-white border-white/30 backdrop-blur-sm">통독 체크리스트</Badge>
-              <Badge variant="outline" className="text-xs text-white border-white/40">총 1,189장</Badge>
+              <Badge variant="outline" className="text-xs text-white border-white/40">5대 유명 통독 방식 지원</Badge>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white">성경 읽기표 및 통독 체크</h2>
-            <p className="text-white/70 text-sm mt-1">Bible Reading Tracker & Checklist Guide</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-white">성경 통독 플랜 & 읽기표</h2>
+            <p className="text-white/70 text-sm mt-1">Bible Reading Plans, Methods & Trackers</p>
             <p className="text-white/80 text-sm md:text-base mt-2 max-w-2xl leading-relaxed">
-              성경 66권(구약 929장, 신약 260장)의 장별 읽기 현황을 직접 체크하고 나만의 통독 목표를 체계적으로 달성하세요. 진행 상황은 브라우저에 자동 저장됩니다.
+              정경 순서, 역사적 연대기 순서, 1년 신구약 병행, 초신자 5단계, 맥체인 4트랙 등 원하시는 방식으로 성경 66권(1,189장)을 체계적으로 완독하세요.
             </p>
           </div>
         </div>
@@ -554,7 +561,7 @@ export default function ReadingPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between mt-2 pt-1 border-t">
-                <span className="text-[11px] text-muted-foreground">기록 관리</span>
+                <span className="text-[11px] text-muted-foreground">진행 기록</span>
                 <button
                   onClick={handleResetAll}
                   className="text-[11px] text-destructive hover:underline"
@@ -566,45 +573,105 @@ export default function ReadingPage() {
           </div>
         )}
 
-        {/* Filter Tabs */}
+        {/* ── 통독 방식 선택 (Reading Plan Method Switcher) ── */}
+        <div className="mb-6 p-4 md:p-5 rounded-xl border bg-card/60 backdrop-blur-sm shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b pb-3">
+            <div>
+              <h3 className="font-bold text-base flex items-center gap-2">
+                <span>📚</span>
+                통독 방식 및 순서 선택
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">원하시는 통독 플랜을 선택하면 성경 66권의 배치와 그룹이 재정렬됩니다.</p>
+            </div>
+            <Badge variant="outline" className="text-xs font-normal">
+              현재: <strong className="ml-1 text-primary">{currentPlan.name}</strong>
+            </Badge>
+          </div>
+
+          {/* Plan Pills */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            {readingPlanMethods.map((plan) => (
+              <button
+                key={plan.id}
+                onClick={() => handlePlanChange(plan.id)}
+                className={`p-3 rounded-lg border text-left transition-all flex flex-col justify-between ${
+                  selectedPlanId === plan.id
+                    ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary shadow-sm font-semibold'
+                    : 'border-border bg-card/80 hover:bg-muted text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-lg">{plan.icon}</span>
+                  <Badge variant="secondary" className="text-[10px] px-1 py-0">{plan.badge}</Badge>
+                </div>
+                <div className="text-xs font-bold leading-tight">{plan.name}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Active Plan Detail & Guide Card */}
+          <div className="p-3.5 rounded-lg bg-muted/40 border text-xs space-y-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-1.5">
+              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                <span className="text-sm">{currentPlan.icon}</span>
+                {currentPlan.name} — <span className="text-muted-foreground font-normal">{currentPlan.subtitle}</span>
+              </span>
+              <span className="text-primary font-medium flex items-center gap-1">
+                ⏱️ 권장 속도: {currentPlan.paceGuide}
+              </span>
+            </div>
+            <p className="text-foreground/80 leading-relaxed">{currentPlan.description}</p>
+            <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+              💡 <strong>추천 대상:</strong> {currentPlan.recommendedFor}
+            </div>
+          </div>
+        </div>
+
+        {/* Status Filter Tabs & Search summary */}
         <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-xl">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="all">전체 (66)</TabsTrigger>
-              <TabsTrigger value="old">구약 (39)</TabsTrigger>
-              <TabsTrigger value="new">신약 (27)</TabsTrigger>
-              <TabsTrigger value="reading">읽는중</TabsTrigger>
-              <TabsTrigger value="completed">완독</TabsTrigger>
+          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full max-w-md">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">전체 보기</TabsTrigger>
+              <TabsTrigger value="reading">읽는 중만 보기</TabsTrigger>
+              <TabsTrigger value="completed">완독한 책만</TabsTrigger>
             </TabsList>
           </Tabs>
 
           <div className="text-xs text-muted-foreground">
-            각 카드를 클릭하여 <strong>장별 체크리스트</strong>를 열 수 있습니다.
+            각 카드를 클릭하여 <strong>대화형 장별 체크리스트</strong>를 열 수 있습니다.
           </div>
         </div>
 
-        {filteredCategories.length === 0 ? (
+        {/* Reading Groups & Book Cards */}
+        {displayedGroups.length === 0 ? (
           <div className="text-center py-20">
             <span className="text-5xl mb-4 block">🔍</span>
-            <p className="text-lg text-muted-foreground">해당 조건의 성경 목록이 없습니다</p>
-            <p className="text-sm text-muted-foreground mt-1">다른 탭을 선택하거나 검색어를 변경해보세요</p>
+            <p className="text-lg text-muted-foreground">해당 조건에 맞는 성경 목록이 없습니다</p>
+            <p className="text-sm text-muted-foreground mt-1">상태 필터를 &lsquo;전체 보기&rsquo;로 변경하거나 검색어를 지워보세요</p>
           </div>
         ) : (
           <div className="space-y-12">
-            {filteredCategories.map((category) => (
-              <section key={category.id} className="mb-10">
-                <div className="flex items-center gap-3 mb-4 border-b pb-2">
-                  <div className="w-3 h-6 rounded-full" style={{ backgroundColor: category.color }} />
-                  <h3 className="text-xl font-bold">{category.name}</h3>
-                  <Badge variant="outline" className="text-xs">{category.books.length}권</Badge>
-                  <span className="text-xs text-muted-foreground">{category.description}</span>
+            {displayedGroups.map((group) => (
+              <section key={group.id} className="mb-10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 border-b pb-2.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-6 rounded-full" style={{ backgroundColor: group.color }} />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-bold">{group.name}</h3>
+                        <Badge variant="outline" className="text-xs">{group.books.length}권</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{group.description}</p>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {category.books.map((book) => (
+                  {group.books.map((book) => (
                     <ReadingBookCard
                       key={book.nameEn}
                       book={book}
-                      categoryColor={category.color}
+                      categoryColor={group.color}
                       readChapters={readChapters}
                       onToggleChapter={handleToggleChapter}
                       onBatchToggle={handleBatchToggle}
@@ -619,8 +686,8 @@ export default function ReadingPage() {
 
       <footer className="border-t bg-muted/30 mt-12">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 text-center text-sm text-muted-foreground">
-          <p>성경 요약 가이드 — 성경 읽기표 및 통독 체크리스트 (구약 39권 929장 · 신약 27권 260장)</p>
-          <p className="text-xs text-muted-foreground/80 mt-1">체크한 통독 진행 상황은 브라우저(localStorage)에 안전하게 저장됩니다.</p>
+          <p>성경 요약 가이드 — 성경 통독 플랜 & 읽기표 (구약 39권 929장 · 신약 27권 260장)</p>
+          <p className="text-xs text-muted-foreground/80 mt-1">체크한 통독 진행 상황 및 선택한 통독 방식은 브라우저에 안전하게 자동 저장됩니다.</p>
         </div>
       </footer>
     </div>
