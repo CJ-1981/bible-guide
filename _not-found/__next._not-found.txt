@@ -1,0 +1,4 @@
+1:"$Sreact.fragment"
+2:I[39756,["/bible-guide/_next/static/chunks/e9a7f80f8ec93c86.js","/bible-guide/_next/static/chunks/7afcb7896684a9f3.js","/bible-guide/_next/static/chunks/d2be314c3ece3fbe.js"],"default"]
+3:I[37457,["/bible-guide/_next/static/chunks/e9a7f80f8ec93c86.js","/bible-guide/_next/static/chunks/7afcb7896684a9f3.js","/bible-guide/_next/static/chunks/d2be314c3ece3fbe.js"],"default"]
+0:{"buildId":"6TapVBFFMs9ZIcjRvRfKY","rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"loading":null,"isPartial":false}
