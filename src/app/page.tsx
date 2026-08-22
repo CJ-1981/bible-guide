@@ -292,18 +292,9 @@ function TimelineView() {
 
               {/* 책 카드 */}
               <Card
-                role="button"
-                tabIndex={0}
-                aria-expanded={isExpanded}
-                className="cursor-pointer hover:shadow-md transition-all border-l-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+                className="cursor-pointer hover:shadow-md transition-all border-l-3"
                 style={{ borderLeftColor: book.categoryColor }}
                 onClick={() => setExpandedBook(isExpanded ? null : book.nameEn)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setExpandedBook(isExpanded ? null : book.nameEn);
-                  }
-                }}
               >
                 <CardContent className="p-3 md:p-4">
                   <div className="flex items-center gap-2">
@@ -409,16 +400,6 @@ export default function Home() {
           )}
           {/* 네비게이션 & 다크모드 */}
           <div className="flex items-center gap-0.5 flex-shrink-0">
-            <Link href="/reading">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="성경 읽기표 (통독일정)">
-                <span>📅</span><span className="hidden lg:inline">통독일정</span>
-              </Button>
-            </Link>
-            <Link href="/topics">
-              <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="주제별 가이드">
-                <span>📌</span><span className="hidden lg:inline">주제별</span>
-              </Button>
-            </Link>
             <Link href="/characters">
               <Button variant="ghost" size="sm" className="text-xs gap-1 h-8 px-2" title="인물 관계도">
                 <span>👥</span><span className="hidden lg:inline">인물도</span>
